@@ -8,21 +8,49 @@ open scoped ComplexConjugate
 namespace LinearPMap
 
 variable {𝕜 E F : Type*} [RCLike 𝕜]
+local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
 variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
 
 theorem mem_adjoint_domain_iff_exists
-    (T : E →ₗ.[𝕜] F) (hT : Dense (T.domain : Set E)) (y : F) :
+    {T : E →ₗ.[𝕜] F} (hT : Dense (T.domain : Set E)) (y : F) :
     y ∈ T.adjoint.domain ↔
       ∃ w : E, ∀ x : T.domain,
         inner 𝕜 w (x : E) = inner 𝕜 y (T x) := by
   constructor
   · intro hy
-    exact ⟨T.adjoint ⟨y, hy⟩, LinearPMap.adjoint_isFormalAdjoint hT ⟨y, hy⟩⟩
+    use T.adjoint ⟨y, hy⟩
+    exact LinearPMap.adjoint_isFormalAdjoint hT ⟨y, hy⟩
+  · exact LinearPMap.mem_adjoint_domain_of_exists y
+
+theorem mem_adjoint_domain_iff_exists' {T : E →ₗ.[𝕜] F} (y : F) :
+    y ∈ T.adjoint.domain ↔ ∃ w : E, ∀ x : T.domain, ⟪w, x⟫ = ⟪y, T x⟫ := by
+  constructor
+  · intro hy
+    let ℓ := T.adjointDomainMkCLM ⟨y, hy⟩
+
+    let DomClsr := T.domain.topologicalClosure
+    let i : T.domain →L[𝕜] DomClsr :=
+      T.domain.subtypeL.codRestrict DomClsr (fun x => T.domain.le_topologicalClosure x.property)
+    let ℓExt : DomClsr →L[𝕜] 𝕜 := ℓ.extend i
+
+    have hℓAgrees (x : T.domain) : ℓExt (i x) = ℓ x := by
+      apply ℓ.extend_eq
+      · exact (denseRange_inclusion_iff subset_closure).2 Set.Subset.rfl
+      · exact (isUniformEmbedding_set_inclusion subset_closure).isUniformInducing
+
+    let riesz_map := (InnerProductSpace.toDual 𝕜 DomClsr).symm
+    use (riesz_map ℓExt : E)
+    intro x
+    change ⟪↑(riesz_map ℓExt), i x⟫ = ℓ x
+    rw [InnerProductSpace.toDual_symm_apply]
+    exact hℓAgrees x
+
+
   · exact LinearPMap.mem_adjoint_domain_of_exists y
 
 theorem isSelfAdjoint_of_surjective
-    (A : E →ₗ.[𝕜] E)
+    {A : E →ₗ.[𝕜] E}
     (hA_dense : Dense (A.domain : Set E))
     (hA_symm : A.IsFormalAdjoint A)
     (hA_surj : Function.Surjective (fun x : A.domain => A x)) :
@@ -31,15 +59,15 @@ theorem isSelfAdjoint_of_surjective
     constructor
     · intro hx
       change x ∈ A.adjoint.domain at hx
-      rw [LinearPMap.mem_adjoint_domain_iff_exists A hA_dense x] at hx
+      rw [LinearPMap.mem_adjoint_domain_iff_exists hA_dense x] at hx
       rcases hx with ⟨f, hpair⟩
       rcases hA_surj f with ⟨x', hx'⟩
       dsimp at hx'
       have hinner (y : A.domain) :
-          inner 𝕜 (x' : E) (A y) = inner 𝕜 x (A y) := by
-          rw [← hA_symm x' y]
-          rw [hx']
-          apply hpair y
+          ⟪(x' : E), A y⟫ = ⟪x, A y⟫ := by
+        rw [← hA_symm x' y]
+        rw [hx']
+        apply hpair y
       have hxx': x = (x' : E) := by
         apply ext_inner_right 𝕜
         intro y
@@ -63,19 +91,28 @@ end LinearPMap
 namespace Friedrichs
 
 variable {𝕜 H : Type*} [RCLike 𝕜]
+
 variable [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
+local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 
 variable (S : H →ₗ.[𝕜] H)
 variable (hsym : S.IsFormalAdjoint S)
-variable (hpos : ∀ u : S.domain, u ≠ 0 →
-  0 < RCLike.re (inner 𝕜 (u : H) (S u)))
+variable (hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (inner 𝕜 (u : H) (S u)))
+example (u : S.domain) :
+    RCLike.re ⟪(u : H), S u⟫ = RCLike.re (inner 𝕜 (u : H) (S u)) := rfl
+
+variable (htest : ∀ u : S.domain, u ≠ 0 →
+  0 < RCLike.re (⟪(u : H), S u⟫))
+
+example (u : S.domain) (hu : u ≠ 0) :
+    0 < RCLike.re (inner 𝕜 (u : H) (S u)) :=
+  htest u hu
 
 -- Include the proofs in the space's parameters.
 def FormSpace
     (S : H →ₗ.[𝕜] H)
     (_hsym : S.IsFormalAdjoint S)
-    (_hpos : ∀ u : S.domain, u ≠ 0 →
-      0 < RCLike.re (inner 𝕜 (u : H) (S u))) :
+    (_hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (⟪(u : H), S u⟫)) :
     Type _ := S.domain
 
 instance :
@@ -91,7 +128,7 @@ def InnerProductFormSpace :
     InnerProductSpace.Core 𝕜 (FormSpace S hsym hpos) := by
   refine
     { inner := fun (u v : S.domain) =>
-        inner 𝕜 (u : H) (S v)
+        ⟪(u : H), S v⟫
       conj_inner_symm := by
         intro u v
         simp [← hsym u v]
@@ -99,7 +136,7 @@ def InnerProductFormSpace :
         intro u
         by_cases hu: u=0
         · rw [hu]
-          change 0 ≤ RCLike.re (inner 𝕜 (0 : H) (S 0))
+          change 0 ≤ RCLike.re (⟪(0 : H), S 0⟫)
           simp
         · bound [hpos u hu]
       add_left := by
@@ -132,7 +169,7 @@ instance FormInnerProductSpace :
 variable (c : ℝ) (hc : 0 < c)
 variable (hbound : ∀ u : S.domain,
   c * ‖(u : H)‖ ^ 2 ≤
-    RCLike.re (inner 𝕜 (u : H) (S u)))
+    RCLike.re (⟪(u : H), S u⟫))
 
 instance : CoeOut (FormSpace S hsym hpos) H :=
   ⟨fun u => u.val⟩
@@ -142,7 +179,7 @@ theorem exists_formCompletion_inclusion
     (c : ℝ) (hc : 0 < c)
     (hbound : ∀ u : S.domain,
       c * ‖(u : H)‖ ^ 2 ≤
-        RCLike.re (inner 𝕜 (u : H) (S u))) :
+        RCLike.re (⟪(u : H), S u⟫) ):
     ∃ J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H,
       Function.Injective J ∧
       ∀ u : FormSpace S hsym hpos,
@@ -181,15 +218,12 @@ theorem exists_formCompletion_inclusion
 
       have hInnerOnCompletion : ∀ (u : FormSpace S hsym hpos)
           (v : UniformSpace.Completion (FormSpace S hsym hpos)),
-          inner 𝕜
-          v (u : UniformSpace.Completion (FormSpace S hsym hpos)) =
-          inner 𝕜 (J v) (S (u : S.domain))  := by
+          ⟪v, (u : UniformSpace.Completion (FormSpace S hsym hpos))⟫ =
+          ⟪J v, S (u : S.domain)⟫  := by
         intro u v
         apply UniformSpace.Completion.ext'
-            (f := fun w => inner 𝕜
-            w (u : UniformSpace.Completion (FormSpace S hsym hpos)))
-            (g := fun w => inner 𝕜
-            (J w) (S (u : S.domain)))
+            (f := fun w => ⟪w,  (u : UniformSpace.Completion (FormSpace S hsym hpos))⟫)
+            (g := fun w => ⟪ (J w), (S (u : S.domain))⟫)
         · exact Continuous.inner (continuous_id) (continuous_const)
         · exact Continuous.inner (J.continuous) (continuous_const)
         · intro w
@@ -197,7 +231,7 @@ theorem exists_formCompletion_inclusion
           rfl
 
       have hOrthogonalToFormSpace: ∀ u : FormSpace S hsym hpos,
-      (inner 𝕜 ((J (v₁-v₂)):H) (S u))=0  := by
+          ⟪(J (v₁-v₂) :H), S u⟫=0  := by
         intro u
         rw [J.map_sub,hv,sub_self]
         simp
@@ -235,7 +269,7 @@ theorem exists_unique_form_representative
     (f : H) :
     ∃! w : UniformSpace.Completion (FormSpace S hsym hpos),
       ∀ v : UniformSpace.Completion (FormSpace S hsym hpos),
-        inner 𝕜 w v = inner 𝕜 f (J v) := by
+        ⟪w, v⟫ = ⟪f, J v⟫ := by
   have hex := (InnerProductSpace.toDual 𝕜
     (UniformSpace.Completion (FormSpace S hsym hpos))).bijective.existsUnique
     ((innerSL 𝕜 f).comp J)
@@ -257,7 +291,7 @@ variable (hS_dense : Dense (S.domain : Set H))
 variable (c : ℝ) (hc : 0 < c)
 variable (hbound : ∀ u : S.domain,
   c * ‖(u : H)‖ ^ 2 ≤
-    RCLike.re (inner 𝕜 (u : H) (S u)))
+    RCLike.re (⟪(u : H), S u⟫))
 variable
   (J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H)
   (hJ_injective : Function.Injective J)
@@ -272,19 +306,18 @@ include hJ_agrees
 theorem inner_formCompletion
     (u : FormSpace S hsym hpos)
     (v : UniformSpace.Completion (FormSpace S hsym hpos)) :
-    inner 𝕜 v (u : UniformSpace.Completion (FormSpace S hsym hpos)) =
-      inner 𝕜 (J v) (S (u : S.domain)) := by
+    ⟪v, (u : UniformSpace.Completion (FormSpace S hsym hpos))⟫ =
+      ⟪J v,  S (u : S.domain)⟫ := by
   apply UniformSpace.Completion.ext'
-      (f := fun w => inner 𝕜
-        w (u : UniformSpace.Completion (FormSpace S hsym hpos)))
-      (g := fun w => inner 𝕜 (J w) (S (u : S.domain)))
+      (f := fun w => ⟪w, (u : UniformSpace.Completion (FormSpace S hsym hpos))⟫)
+      (g := fun w => ⟪J w, (S (u : S.domain))⟫)
   · exact Continuous.inner continuous_id continuous_const
   · exact Continuous.inner J.continuous continuous_const
   · intro w
     rw [UniformSpace.Completion.inner_coe, hJ_agrees w]
     rfl
 
-include hS_dense hc hbound hJ_injective hJ_agrees hJ_dense hJ_bound
+include hS_dense hc hbound hJ_injective hJ_agrees hJ_dense hJ_bound in
 
 -- 1. Construct an extension, including its lower bound.
 theorem friedrichs_exists :
@@ -296,14 +329,14 @@ theorem friedrichs_exists :
           J w = (x : H)) ∧
       (∀ x : A.domain,
         c * ‖(x : H)‖ ^ 2 ≤
-          RCLike.re (inner 𝕜 (x : H) (A x))) := by
+          RCLike.re (⟪(x : H), A x⟫)) := by
   let D : Submodule 𝕜 H :=
     { carrier :=
         {x | ∃ f : H,
         ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = x ∧
         ∀ v : UniformSpace.Completion (FormSpace S hsym hpos),
-        inner 𝕜 w v = inner 𝕜 f (J v)
+        ⟪w, v⟫ = ⟪f, J v⟫
         }
       zero_mem' := by
         use 0
@@ -328,9 +361,9 @@ theorem friedrichs_exists :
     }
   have output_unique (x f g : H)
     (hf : ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
-      J w = x ∧ ∀ v, inner 𝕜 w v = inner 𝕜 f (J v))
+      J w = x ∧ ∀ v, ⟪w, v⟫ = ⟪f, J v⟫)
     (hg : ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
-      J w = x ∧ ∀ v, inner 𝕜 w v = inner 𝕜 g (J v)) :
+      J w = x ∧ ∀ v, ⟪w, v⟫ = ⟪g, J v⟫) :
     f = g := by
     rcases hf with ⟨w₁, hw₁, hp₁⟩
     rcases hg with ⟨w₂, hw₂, hp₂⟩
@@ -375,7 +408,7 @@ theorem friedrichs_exists :
       ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = (x : H) ∧
         ∀ v : UniformSpace.Completion (FormSpace S hsym hpos),
-          inner 𝕜 w v = inner 𝕜 f (J v) := by
+          ⟪w, v⟫ = ⟪f, J v⟫ := by
     constructor
     · intro h
       rw[← h]
@@ -429,8 +462,8 @@ theorem friedrichs_exists :
     intro x₁ x₂
     rcases Classical.choose_spec x₁.property with ⟨w₁, hw₁, hpair₁⟩
     rcases Classical.choose_spec x₂.property with ⟨w₂, hw₂, hpair₂⟩
-    change ∀ v, inner 𝕜 w₁ v = inner 𝕜 (A x₁) (J v) at hpair₁
-    change ∀ v, inner 𝕜 w₂ v = inner 𝕜 (A x₂) (J v) at hpair₂
+    change ∀ v, ⟪w₁, v⟫ = ⟪A x₁, J v⟫ at hpair₁
+    change ∀ v, ⟪w₂, v⟫ = ⟪A x₂, J v⟫ at hpair₂
     rw [← hw₂, ← hpair₁ w₂]
     rw [← hw₁,← inner_conj_symm (𝕜 := 𝕜) (J w₁) (A x₂), ← hpair₂ w₁,
         ← inner_conj_symm (𝕜 := 𝕜) w₁ w₂]
@@ -438,14 +471,14 @@ theorem friedrichs_exists :
   constructor
   · exact hSA
   · constructor
-    · exact LinearPMap.isSelfAdjoint_of_surjective A hA_dense hA_symm hA_surj
+    · exact LinearPMap.isSelfAdjoint_of_surjective hA_dense hA_symm hA_surj
     · constructor
       · intro x
         rcases Classical.choose_spec x.property with ⟨w, hw, hpair⟩
         use w
       · intro x
         rcases Classical.choose_spec x.property with ⟨w, hw, hpair⟩
-        change ∀ v, inner 𝕜 w v = inner 𝕜 (A x) (J v) at hpair
+        change ∀ v, ⟪w, v⟫ = ⟪A x, J v⟫ at hpair
         rw [← hw, inner_re_symm (𝕜 := 𝕜) (J w) (A x)]
         rw [← hpair (w : UniformSpace.Completion (FormSpace S hsym hpos))]
         simp
