@@ -1,5 +1,12 @@
+/-
+Copyright (c) 2026 Lukas Schimmer. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Lukas Schimmer
+-/
+
 import Mathlib.Analysis.InnerProductSpace.LinearPMap
 import Mathlib.Analysis.InnerProductSpace.Completion
+import Mathlib.Analysis.Normed.Operator.Extend
 
 noncomputable section
 
@@ -12,79 +19,62 @@ local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
 variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
 
-theorem mem_adjoint_domain_iff_exists
-    {T : E →ₗ.[𝕜] F} (hT : Dense (T.domain : Set E)) (y : F) :
-    y ∈ T.adjoint.domain ↔
-      ∃ w : E, ∀ x : T.domain,
-        inner 𝕜 w (x : E) = inner 𝕜 y (T x) := by
-  constructor
-  · intro hy
-    use T.adjoint ⟨y, hy⟩
-    exact LinearPMap.adjoint_isFormalAdjoint hT ⟨y, hy⟩
-  · exact LinearPMap.mem_adjoint_domain_of_exists y
-
-theorem mem_adjoint_domain_iff_exists' {T : E →ₗ.[𝕜] F} (y : F) :
+/-- A vector `y` belongs to the domain of the adjoint if and only if the
+functional `x ↦ ⟪y, T x⟫` on `T.domain` can be represented as an inner product with
+a vector of `E`. -/
+theorem mem_adjoint_domain_iff_exists {T : E →ₗ.[𝕜] F} (y : F) :
     y ∈ T.adjoint.domain ↔ ∃ w : E, ∀ x : T.domain, ⟪w, x⟫ = ⟪y, T x⟫ := by
   constructor
   · intro hy
     let ℓ := T.adjointDomainMkCLM ⟨y, hy⟩
-
-    let DomClsr := T.domain.topologicalClosure
-    let i : T.domain →L[𝕜] DomClsr :=
-      T.domain.subtypeL.codRestrict DomClsr (fun x => T.domain.le_topologicalClosure x.property)
-    let ℓExt : DomClsr →L[𝕜] 𝕜 := ℓ.extend i
-
-    have hℓAgrees (x : T.domain) : ℓExt (i x) = ℓ x := by
-      apply ℓ.extend_eq
-      · exact (denseRange_inclusion_iff subset_closure).2 Set.Subset.rfl
-      · exact (isUniformEmbedding_set_inclusion subset_closure).isUniformInducing
-
-    let riesz_map := (InnerProductSpace.toDual 𝕜 DomClsr).symm
-    use (riesz_map ℓExt : E)
+    let D := T.domain.topologicalClosure
+    let i : T.domain →L[𝕜] D :=
+      { toLinearMap := Submodule.inclusion T.domain.le_topologicalClosure
+        cont := continuous_inclusion T.domain.le_topologicalClosure }
+    let ℓExt := ℓ.extend i
+    use ((InnerProductSpace.toDual 𝕜 D).symm ℓExt : E)
     intro x
-    change ⟪↑(riesz_map ℓExt), i x⟫ = ℓ x
+    change ⟪(InnerProductSpace.toDual 𝕜 D).symm ℓExt, i x⟫ = ℓ x
     rw [InnerProductSpace.toDual_symm_apply]
-    exact hℓAgrees x
-
-
+    apply ContinuousLinearMap.extend_eq
+    · apply (denseRange_inclusion_iff T.domain.le_topologicalClosure).2
+      simp
+    · exact (isUniformEmbedding_set_inclusion T.domain.le_topologicalClosure).isUniformInducing
   · exact LinearPMap.mem_adjoint_domain_of_exists y
 
+/-- A densely defined symmtric operator that is surjective,
+is also self-adjoint. -/
 theorem isSelfAdjoint_of_surjective
     {A : E →ₗ.[𝕜] E}
     (hA_dense : Dense (A.domain : Set E))
     (hA_symm : A.IsFormalAdjoint A)
     (hA_surj : Function.Surjective (fun x : A.domain => A x)) :
     IsSelfAdjoint A := by
-    ext x
-    constructor
-    · intro hx
-      change x ∈ A.adjoint.domain at hx
-      rw [LinearPMap.mem_adjoint_domain_iff_exists hA_dense x] at hx
-      rcases hx with ⟨f, hpair⟩
-      rcases hA_surj f with ⟨x', hx'⟩
-      dsimp at hx'
-      have hinner (y : A.domain) :
-          ⟪(x' : E), A y⟫ = ⟪x, A y⟫ := by
-        rw [← hA_symm x' y]
-        rw [hx']
-        apply hpair y
-      have hxx': x = (x' : E) := by
-        apply ext_inner_right 𝕜
-        intro y
-        rcases hA_surj y with ⟨z, hz⟩
-        rw [← hz, hinner z]
-      simp [hxx']
+  ext x
+  constructor
+  · intro hx
+    change x ∈ A.adjoint.domain at hx
+    rw [LinearPMap.mem_adjoint_domain_iff_exists x] at hx
+    rcases hx with ⟨f, hpair⟩
+    rcases hA_surj f with ⟨x', hx'⟩
+    dsimp at hx'
+    have hinner (y : A.domain) :
+        ⟪(x' : E), A y⟫ = ⟪x, A y⟫ := by
+      rw [← hA_symm x' y]
+      rw [hx']
+      apply hpair y
+    have hxx': x = (x' : E) := by
+      apply ext_inner_right 𝕜
+      intro y
+      rcases hA_surj y with ⟨z, hz⟩
+      rw [← hz, hinner z]
+    simp [hxx']
 
-    · intro hx
-      exact (hA_symm.le_adjoint hA_dense).1 hx
-    · symm
-      apply (hA_symm.le_adjoint hA_dense).2
-      simp
-
-
-
-
-
+  · intro hx
+    exact (hA_symm.le_adjoint hA_dense).1 hx
+  · symm
+    apply (hA_symm.le_adjoint hA_dense).2
+    simp
 
 end LinearPMap
 
@@ -98,17 +88,9 @@ local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 variable (S : H →ₗ.[𝕜] H)
 variable (hsym : S.IsFormalAdjoint S)
 variable (hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (inner 𝕜 (u : H) (S u)))
-example (u : S.domain) :
-    RCLike.re ⟪(u : H), S u⟫ = RCLike.re (inner 𝕜 (u : H) (S u)) := rfl
 
-variable (htest : ∀ u : S.domain, u ≠ 0 →
-  0 < RCLike.re (⟪(u : H), S u⟫))
-
-example (u : S.domain) (hu : u ≠ 0) :
-    0 < RCLike.re (inner 𝕜 (u : H) (S u)) :=
-  htest u hu
-
--- Include the proofs in the space's parameters.
+/-- Define the form domain. The proofs of symmetry and
+positivity are in the space's parameters. -/
 def FormSpace
     (S : H →ₗ.[𝕜] H)
     (_hsym : S.IsFormalAdjoint S)
@@ -123,6 +105,7 @@ instance :
     Module 𝕜 (FormSpace S hsym hpos) :=
   inferInstanceAs (Module 𝕜 S.domain)
 
+-- Define the form space with inner product
 @[instance_reducible]
 def InnerProductFormSpace :
     InnerProductSpace.Core 𝕜 (FormSpace S hsym hpos) := by
@@ -169,11 +152,13 @@ instance FormInnerProductSpace :
 variable (c : ℝ) (hc : 0 < c)
 variable (hbound : ∀ u : S.domain,
   c * ‖(u : H)‖ ^ 2 ≤
-    RCLike.re (⟪(u : H), S u⟫))
+    RCLike.re (inner 𝕜 (u : H) (S u)))
 
 instance : CoeOut (FormSpace S hsym hpos) H :=
   ⟨fun u => u.val⟩
 
+/-- The completion of the form domian with respect to the inner product from the operator form
+is injectively embedded in `E`-/
 theorem exists_formCompletion_inclusion
     [CompleteSpace H]
     (c : ℝ) (hc : 0 < c)
@@ -262,7 +247,8 @@ theorem exists_formCompletion_inclusion
           exact hbound a
 
 
-
+/--For every `f` in `H` there is a unique `w` in the completed form domain,
+such that `⟪w, v⟫ = ⟪f, J v⟫` for all `v` in the completed form domain.-/
 theorem exists_unique_form_representative
     [CompleteSpace H]
     (J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H)
@@ -277,6 +263,8 @@ theorem exists_unique_form_representative
   convert hex
   simp[ContinuousLinearMap.ext_iff]
 
+/-- Map every `f` in `H` to the unique `w` in the completed form domain,
+such that `⟪w, v⟫ = ⟪f, J v⟫` for all `v` in the completed form domain.-/
 def RieszRepresentative
     (J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H)
     (f : H) :=
@@ -291,7 +279,7 @@ variable (hS_dense : Dense (S.domain : Set H))
 variable (c : ℝ) (hc : 0 < c)
 variable (hbound : ∀ u : S.domain,
   c * ‖(u : H)‖ ^ 2 ≤
-    RCLike.re (⟪(u : H), S u⟫))
+    RCLike.re (inner 𝕜 (u:H) (S u)))
 variable
   (J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H)
   (hJ_injective : Function.Injective J)
@@ -302,7 +290,10 @@ variable
   (hJ_bound : ∀ w : UniformSpace.Completion (FormSpace S hsym hpos),
     c * ‖J w‖ ^ 2 ≤ ‖w‖ ^ 2)
 
-include hJ_agrees
+omit [CompleteSpace H] in
+include hJ_agrees in
+/--For every `u` in the operator domain and every `v` in the completed
+form domain the identity  `⟪v, u⟫ = ⟪J v, Su⟫` holds.-/
 theorem inner_formCompletion
     (u : FormSpace S hsym hpos)
     (v : UniformSpace.Completion (FormSpace S hsym hpos)) :
@@ -317,9 +308,8 @@ theorem inner_formCompletion
     rw [UniformSpace.Completion.inner_coe, hJ_agrees w]
     rfl
 
-include hS_dense hc hbound hJ_injective hJ_agrees hJ_dense hJ_bound in
-
--- 1. Construct an extension, including its lower bound.
+-- Construct an extension, including its lower bound.
+include hS_dense hJ_injective hJ_agrees hJ_dense hJ_bound in
 theorem friedrichs_exists :
     ∃ A : H →ₗ.[𝕜] H,
       S ≤ A ∧
@@ -426,7 +416,7 @@ theorem friedrichs_exists :
       let x' : FormSpace S hsym hpos := ⟨x, hx⟩
       use (x' : UniformSpace.Completion (FormSpace S hsym hpos))
       constructor
-      · apply hJ_agrees x'
+      · rw [hJ_agrees x']
       · intro v
         rw [← inner_conj_symm (𝕜 := 𝕜) (↑x') v,
              ← inner_conj_symm (𝕜 := 𝕜) (S ⟨x, hx⟩) (J v)]
@@ -484,30 +474,12 @@ theorem friedrichs_exists :
         simp
         exact hJ_bound w
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- 2. Characterise any such extension by the pairing identity.
+-- Characterise any such extension by the inner product identity.
+include  hJ_agrees in
 theorem friedrichs_pairing_iff
-    (A : H →ₗ.[𝕜] H)
-    (hA : IsSelfAdjoint A)
+    {A : H →ₗ.[𝕜] H}
     (hSA : S ≤ A)
+    (hA : IsSelfAdjoint A)
     (hA_domain : ∀ x : A.domain,
       ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = (x : H))
@@ -516,16 +488,68 @@ theorem friedrichs_pairing_iff
       ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = x ∧
         ∀ v : UniformSpace.Completion (FormSpace S hsym hpos),
-          inner 𝕜 w v = inner 𝕜 f (J v) := by
-  sorry
+          ⟪w, v⟫ = ⟪f, J v⟫ := by
 
--- 3. Inlcusion of compeltion of form domain charaterises the extension uniquely.
+  have hA_Adj : A.adjoint = A := LinearPMap.isSelfAdjoint_def.mp hA
+  have hA_symm : A.IsFormalAdjoint A := by
+    have h := LinearPMap.adjoint_isFormalAdjoint hA.dense_domain
+    rw [hA_Adj] at h
+    exact h
+  have hA_inner :
+    ∀ x : A.domain,
+      ∃ v : UniformSpace.Completion (FormSpace S hsym hpos),
+        J v = (x : H) ∧
+        ∀ u : UniformSpace.Completion (FormSpace S hsym hpos),
+          ⟪v, u⟫ = ⟪A x, J u⟫ := by
+    rintro x
+    rcases hA_domain x  with ⟨w,hw⟩
+    use w
+    constructor
+    · exact hw
+    · apply UniformSpace.Completion.ext'
+        (f := fun u => ⟪w,  u ⟫)
+        (g := fun u => ⟪ A x, (J u)⟫)
+      · exact Continuous.inner continuous_const continuous_id
+      · exact Continuous.inner continuous_const J.continuous
+      · intro v
+        rw [hJ_agrees v]
+        let vA : A.domain :=
+          Submodule.inclusion hSA.1 (v : S.domain)
+        change  ⟪w, v⟫ = ⟪A x, vA⟫
+        rw [hA_symm x vA]
+        have hAv : S (v : S.domain) = A vA := by
+          apply hSA.2
+          rfl
+        rw [← hAv, ← hw]
+        rw [inner_formCompletion S hsym hpos J hJ_agrees]
+
+  constructor
+  · rintro ⟨hx,hf⟩
+    rw[← hf]
+    exact hA_inner ⟨x, hx⟩
+  · rintro ⟨w, hw, hw_inner⟩
+    have hf_inner : ∀ y : A.domain, ⟪f, (y : H)⟫ = ⟪x, A y⟫ := by
+      intro y
+      rcases hA_inner y with ⟨v, hv, hv_inner⟩
+      rw [← hv, ← hw,← inner_conj_symm (𝕜 := 𝕜) (J w) (A y) ]
+      rw [← hv_inner,inner_conj_symm (𝕜 := 𝕜) w v ]
+      rw [hw_inner v]
+    have hx_Adj : x ∈ A.adjoint.domain :=
+      LinearPMap.mem_adjoint_domain_of_exists x ⟨f, hf_inner⟩
+    have hf_Adj : A.adjoint ⟨x, hx_Adj⟩ = f := by
+      apply LinearPMap.adjoint_apply_eq hA.dense_domain
+      exact hf_inner
+    rw[← hA_Adj]
+    exact ⟨hx_Adj,hf_Adj⟩
+
+-- Inlcusion in completion of the form domain charaterises the extension uniquely.
+include hJ_agrees in
 theorem friedrichs_unique
-    (A B : H →ₗ.[𝕜] H)
-    (hA : IsSelfAdjoint A)
-    (hB : IsSelfAdjoint B)
+    {A B : H →ₗ.[𝕜] H}
     (hSA : S ≤ A)
     (hSB : S ≤ B)
+    (hA : IsSelfAdjoint A)
+    (hB : IsSelfAdjoint B)
     (hA_domain : ∀ x : A.domain,
       ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = (x : H))
@@ -533,17 +557,62 @@ theorem friedrichs_unique
       ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
         J w = (x : H)) :
     A = B := by
-  sorry
+  have hAB (x : A.domain) :
+    ∃ hxB : (x : H) ∈ B.domain, B ⟨(x : H), hxB⟩ = A x := by
+    have hA_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+        hSA hA hA_domain x (A x)
+    have hB_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+        hSB hB hB_domain x (A x)
+    have hA_inner := hA_pair.mp ⟨x.property,rfl⟩
+    rcases hB_pair.mpr hA_inner with ⟨hxB,hBx⟩
+    use hxB
+  have hBA (x : B.domain) :
+    ∃ hxA : (x : H) ∈ A.domain, A ⟨(x : H), hxA⟩ = B x := by
+    have hB_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+        hSB hB hB_domain x (B x)
+    have hA_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+        hSA hA hA_domain x (B x)
+    have hB_inner := hB_pair.mp ⟨x.property,rfl⟩
+    rcases hA_pair.mpr hB_inner with ⟨hxA,hAx⟩
+    use hxA
+  apply le_antisymm
+  · constructor
+    · intro x hx
+      rcases hAB ⟨x, hx⟩ with ⟨hxB, _⟩
+      exact hxB
+    · intro x y hxy
+      rcases hAB x with ⟨hxB, hBx⟩
+      rw [← hBx]
+      simp only [hxy]
+  · constructor
+    · intro x hx
+      rcases hBA ⟨x, hx⟩ with ⟨hxA, _⟩
+      exact hxA
+    · intro x y hxy
+      rcases hBA x with ⟨hxA, hAx⟩
+      rw [← hAx]
+      simp only [hxy]
 
--- 4. Combine existence and uniqueness.
+-- Combine existence and uniqueness.
+include hS_dense hJ_injective hJ_agrees hJ_dense hJ_bound in
 theorem exists_unique_friedrichs_extension :
     ∃! A : H →ₗ.[𝕜] H,
-      IsSelfAdjoint A ∧
       S ≤ A ∧
+      IsSelfAdjoint A ∧
       ∀ x : A.domain,
         ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
           J w = (x : H) := by
-  sorry
+  rcases friedrichs_exists S hsym hpos hS_dense c J
+      hJ_injective hJ_agrees hJ_dense hJ_bound with
+    ⟨A, hSA, hA, hA_domain, hA_bound⟩
+  use A
+  constructor
+  · exact ⟨hSA, hA, hA_domain⟩
+  · rintro B ⟨hSB, hB, hB_domain⟩
+    symm
+    exact friedrichs_unique S hsym hpos J hJ_agrees
+        hSA hSB hA hB hA_domain hB_domain
+
 
 end FriedrichsTheorems
 end Friedrichs
