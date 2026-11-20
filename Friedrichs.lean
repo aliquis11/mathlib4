@@ -12,12 +12,29 @@ noncomputable section
 
 open scoped ComplexConjugate
 
+
+namespace submodule
+
+variable {R M : Type*} [Semiring R]
+  [TopologicalSpace M] [AddCommMonoid M] [Module R M]
+
+-- Temporary copy pending integration into mathlib (PR #45828).
+
+/-- `Submodule.inclusion` as a `ContinuousLinearMap`. -/
+def inclusionL {p q : Submodule R M} (h : p ≤ q) : p →L[R] q where
+  toLinearMap := Submodule.inclusion h
+  cont := continuous_inclusion h
+
+end submodule
+
 namespace LinearPMap
 
 variable {𝕜 E F : Type*} [RCLike 𝕜]
 local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
 variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
+
+-- Temporary copy pending integration into mathlib (PR #45828).
 
 /-- A vector `y` belongs to the domain of the adjoint if and only if the
 functional `x ↦ ⟪y, T x⟫` on `T.domain` can be represented as an inner product with
@@ -28,9 +45,7 @@ theorem mem_adjoint_domain_iff_exists {T : E →ₗ.[𝕜] F} (y : F) :
   · intro hy
     let ℓ := T.adjointDomainMkCLM ⟨y, hy⟩
     let D := T.domain.topologicalClosure
-    let i : T.domain →L[𝕜] D :=
-      { toLinearMap := Submodule.inclusion T.domain.le_topologicalClosure
-        cont := continuous_inclusion T.domain.le_topologicalClosure }
+    let i := Submodule.inclusionL T.domain.le_topologicalClosure
     let ℓExt := ℓ.extend i
     use ((InnerProductSpace.toDual 𝕜 D).symm ℓExt : E)
     intro x
@@ -89,8 +104,8 @@ variable (S : H →ₗ.[𝕜] H)
 variable (hsym : S.IsFormalAdjoint S)
 variable (hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (inner 𝕜 (u : H) (S u)))
 
-/-- Define the form domain. The proofs of symmetry and
-positivity are in the space's parameters. -/
+/- Define the form domain. The proofs of symmetry and positivity
+are in the space's parameters. -/
 def FormSpace
     (S : H →ₗ.[𝕜] H)
     (_hsym : S.IsFormalAdjoint S)

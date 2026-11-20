@@ -29,11 +29,9 @@ Supporting results are being prepared as separate contributions:
 
 - Characterise membership in the adjoint domain through an inner-product
   representation in `Mathlib/Analysis/InnerProductSpace/LinearPMap.lean`: ([PR #45828](https://github.com/leanprover-community/mathlib4/pull/45828)).
-
+- Define the inlcusion map between two nested subspaces as a bundled continuous map in `Mathlib/Topology/Algebra/Module/ContinuousLinearMap/Restrict.lean`: ([PR #45828](https://github.com/leanprover-community/mathlib4/pull/45828)).
 - Introduce `LinearPMap.IsSymmetric` with basic lemmas.
-
 - Include the result that a densely defined, symmetric, surjective operator is self-adjoint in `LinearPMap.IsSymmetric`.
-
 - Possibly extract the representation theorem for densely defined, closed,
   semibounded Hermitian form in a separate file.
 
