@@ -13,7 +13,7 @@ noncomputable section
 open scoped ComplexConjugate
 
 
-namespace submodule
+namespace Submodule
 
 variable {R M : Type*} [Semiring R]
   [TopologicalSpace M] [AddCommMonoid M] [Module R M]
@@ -25,7 +25,7 @@ def inclusionL {p q : Submodule R M} (h : p ≤ q) : p →L[R] q where
   toLinearMap := Submodule.inclusion h
   cont := continuous_inclusion h
 
-end submodule
+end Submodule
 
 namespace LinearPMap
 
