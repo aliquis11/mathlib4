@@ -100,9 +100,10 @@ variable {𝕜 H : Type*} [RCLike 𝕜]
 variable [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
 local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 
-variable (S : H →ₗ.[𝕜] H)
-variable (hsym : S.IsFormalAdjoint S)
-variable (hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (inner 𝕜 (u : H) (S u)))
+variable
+  (S : H →ₗ.[𝕜] H)
+  (hsym : S.IsFormalAdjoint S)
+  (hpos : ∀ u : S.domain, u ≠ 0 → 0 < RCLike.re (inner 𝕜 (u : H) (S u)))
 
 /- Define the form domain. The proofs of symmetry and positivity
 are in the space's parameters. -/
@@ -164,17 +165,18 @@ instance FormInnerProductSpace :
   InnerProductSpace.ofCore
     (InnerProductFormSpace S hsym hpos).toCore
 
-variable (c : ℝ) (hc : 0 < c)
-variable (hbound : ∀ u : S.domain,
+variable
+  (c : ℝ) (hc : 0 < c)
+  (hbound : ∀ u : S.domain,
   c * ‖(u : H)‖ ^ 2 ≤
     RCLike.re (inner 𝕜 (u : H) (S u)))
 
 instance : CoeOut (FormSpace S hsym hpos) H :=
   ⟨fun u => u.val⟩
 
-/-- The completion of the form domian with respect to the inner product from the operator form
+/-- The completion of the form domian with respect to the inner product from the positive operator form
 is injectively embedded in `E`-/
-theorem exists_formCompletion_inclusion
+theorem exists_positiveFormCompletion_inclusion
     [CompleteSpace H]
     (c : ℝ) (hc : 0 < c)
     (hbound : ∀ u : S.domain,
@@ -182,9 +184,9 @@ theorem exists_formCompletion_inclusion
         RCLike.re (⟪(u : H), S u⟫) ):
     ∃ J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H,
       Function.Injective J ∧
-      ∀ u : FormSpace S hsym hpos,
+      (∀ u : FormSpace S hsym hpos,
         J (u : UniformSpace.Completion (FormSpace S hsym hpos)) =
-          (u : H) ∧
+          (u : H) )∧
       ∀ w : UniformSpace.Completion (FormSpace S hsym hpos),
         c * ‖J w‖ ^ 2 ≤ ‖w‖ ^ 2 := by
     let j : FormSpace S hsym hpos →ₗ[𝕜] H :={
@@ -231,7 +233,7 @@ theorem exists_formCompletion_inclusion
           rfl
 
       have hOrthogonalToFormSpace: ∀ u : FormSpace S hsym hpos,
-          ⟪(J (v₁-v₂) :H), S u⟫=0  := by
+          ⟪(J (v₁-v₂) : H), S u⟫ = 0  := by
         intro u
         rw [J.map_sub,hv,sub_self]
         simp
@@ -243,11 +245,11 @@ theorem exists_formCompletion_inclusion
 
       apply hFormSpaceDense.eq_zero_of_inner_left 𝕜
       intro u
-      rw [hInnerOnCompletion u (v₁-v₂)]
+      rw [hInnerOnCompletion u (v₁ - v₂)]
       exact hOrthogonalToFormSpace u
-    · intro u
-      constructor
-      · rw [ContinuousLinearMap.fromCompletion_apply_coe]
+    · constructor
+      · intro u
+        rw [ContinuousLinearMap.fromCompletion_apply_coe]
         rfl
       · intro w
         apply UniformSpace.Completion.induction_on w
@@ -287,15 +289,15 @@ def RieszRepresentative
     (UniformSpace.Completion (FormSpace S hsym hpos))).symm
     ((innerSL 𝕜 f).comp J)
 
-section FriedrichsTheorems
+section PositiveFriedrichsTheorems
 
-variable [CompleteSpace H]
-variable (hS_dense : Dense (S.domain : Set H))
-variable (c : ℝ) (hc : 0 < c)
-variable (hbound : ∀ u : S.domain,
-  c * ‖(u : H)‖ ^ 2 ≤
-    RCLike.re (inner 𝕜 (u:H) (S u)))
 variable
+  [CompleteSpace H]
+  (hS_dense : Dense (S.domain : Set H))
+  (c : ℝ) (hc : 0 < c)
+  (hbound : ∀ u : S.domain,
+    c * ‖(u : H)‖ ^ 2 ≤
+      RCLike.re (inner 𝕜 (u : H) (S u)))
   (J : UniformSpace.Completion (FormSpace S hsym hpos) →L[𝕜] H)
   (hJ_injective : Function.Injective J)
   (hJ_agrees : ∀ u : FormSpace S hsym hpos,
@@ -325,7 +327,7 @@ theorem inner_formCompletion
 
 -- Construct an extension, including its lower bound.
 include hS_dense hJ_injective hJ_agrees hJ_dense hJ_bound in
-theorem friedrichs_exists :
+theorem positive_friedrichs_exists :
     ∃ A : H →ₗ.[𝕜] H,
       S ≤ A ∧
       IsSelfAdjoint A ∧
@@ -491,7 +493,7 @@ theorem friedrichs_exists :
 
 -- Characterise any such extension by the inner product identity.
 include  hJ_agrees in
-theorem friedrichs_pairing_iff
+theorem positive_friedrichs_pairing_iff
     {A : H →ₗ.[𝕜] H}
     (hSA : S ≤ A)
     (hA : IsSelfAdjoint A)
@@ -559,7 +561,7 @@ theorem friedrichs_pairing_iff
 
 -- Inlcusion in completion of the form domain charaterises the extension uniquely.
 include hJ_agrees in
-theorem friedrichs_unique
+theorem positive_friedrichs_unique
     {A B : H →ₗ.[𝕜] H}
     (hSA : S ≤ A)
     (hSB : S ≤ B)
@@ -574,18 +576,18 @@ theorem friedrichs_unique
     A = B := by
   have hAB (x : A.domain) :
     ∃ hxB : (x : H) ∈ B.domain, B ⟨(x : H), hxB⟩ = A x := by
-    have hA_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+    have hA_pair := positive_friedrichs_pairing_iff S hsym hpos J hJ_agrees
         hSA hA hA_domain x (A x)
-    have hB_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+    have hB_pair := positive_friedrichs_pairing_iff S hsym hpos J hJ_agrees
         hSB hB hB_domain x (A x)
     have hA_inner := hA_pair.mp ⟨x.property,rfl⟩
     rcases hB_pair.mpr hA_inner with ⟨hxB,hBx⟩
     use hxB
   have hBA (x : B.domain) :
     ∃ hxA : (x : H) ∈ A.domain, A ⟨(x : H), hxA⟩ = B x := by
-    have hB_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+    have hB_pair := positive_friedrichs_pairing_iff S hsym hpos J hJ_agrees
         hSB hB hB_domain x (B x)
-    have hA_pair := friedrichs_pairing_iff S hsym hpos J hJ_agrees
+    have hA_pair := positive_friedrichs_pairing_iff S hsym hpos J hJ_agrees
         hSA hA hA_domain x (B x)
     have hB_inner := hB_pair.mp ⟨x.property,rfl⟩
     rcases hA_pair.mpr hB_inner with ⟨hxA,hAx⟩
@@ -610,14 +612,14 @@ theorem friedrichs_unique
 
 -- Combine existence and uniqueness.
 include hS_dense hJ_injective hJ_agrees hJ_dense hJ_bound in
-theorem exists_unique_friedrichs_extension :
+theorem exists_unique_positive_friedrichs_extension :
     ∃! A : H →ₗ.[𝕜] H,
       S ≤ A ∧
       IsSelfAdjoint A ∧
       ∀ x : A.domain,
         ∃ w : UniformSpace.Completion (FormSpace S hsym hpos),
           J w = (x : H) := by
-  rcases friedrichs_exists S hsym hpos hS_dense c J
+  rcases positive_friedrichs_exists S hsym hpos hS_dense c J
       hJ_injective hJ_agrees hJ_dense hJ_bound with
     ⟨A, hSA, hA, hA_domain, hA_bound⟩
   use A
@@ -625,9 +627,218 @@ theorem exists_unique_friedrichs_extension :
   · exact ⟨hSA, hA, hA_domain⟩
   · rintro B ⟨hSB, hB, hB_domain⟩
     symm
-    exact friedrichs_unique S hsym hpos J hJ_agrees
+    exact positive_friedrichs_unique S hsym hpos J hJ_agrees
         hSA hSB hA hB hA_domain hB_domain
 
 
-end FriedrichsTheorems
+end PositiveFriedrichsTheorems
+/--The shifted operator `S + m` for an operator `S` and a real number `m`-/
+def shiftedOperator (S : H →ₗ.[𝕜] H) (m : ℝ) : H →ₗ.[𝕜] H where
+  domain := S.domain
+  toFun :=
+    S.toFun + (m : 𝕜) • S.domain.subtype
+
+/--For symmetric `S` and real `m` the shifted operator `S + m` is symmetric-/
+theorem shiftedOperator_isFormalAdjoint
+    {S : H →ₗ.[𝕜] H} (m : ℝ)
+    (hsym : S.IsFormalAdjoint S) :
+    (shiftedOperator S m).IsFormalAdjoint (shiftedOperator S m) := by
+  intro u v
+  change ⟪S u + (m: 𝕜) • (u : H), (v : H)⟫ = ⟪(u : H), S v + (m : 𝕜) • (v : H)⟫
+  rw [inner_add_left, inner_smul_left, RCLike.conj_ofReal]
+  rw [inner_add_right, inner_smul_right, add_right_cancel_iff]
+  exact hsym u v
+
+/--For desnely defined `S` and real `m` the shifted operator `S + m` is
+densely defined-/
+theorem shiftedOperator_dense_domain
+    {S : H →ₗ.[𝕜] H} (m : ℝ)
+    (hS_dense : Dense (S.domain : Set H)) :
+    Dense ((shiftedOperator S m).domain : Set H) := hS_dense
+
+/-- For `S` with lower bound `c` and real `m` the shifted operator `S + m`
+has lower bound `c + m`. -/
+theorem shiftedOperator_lower_bound
+    {S : H →ₗ.[𝕜] H} (c m : ℝ)
+    (hbound : ∀ u : S.domain,
+      c * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), S u⟫) :
+    ∀ u : (shiftedOperator S m).domain,
+     (c + m) * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), shiftedOperator S m u⟫ := by
+  intro u
+  change (c + m) * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), S u + (m : 𝕜) • (u : H)⟫
+  rw [inner_add_right, inner_smul_right, map_add]
+  simp [RCLike.mul_re]
+  linarith [hbound u]
+
+/-- For `S` with lower bound `c` and `m` with `c + m > 0` the shifted operator `S + m`
+is strictly positive. -/
+theorem shiftedOperator_positive
+    {S : H →ₗ.[𝕜] H} (c m : ℝ) (hcm: 0 < c + m)
+    (hbound : ∀ u : S.domain,
+      c * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), S u⟫) :
+    ∀ u : (shiftedOperator S m).domain,
+      u ≠ 0 → 0 < RCLike.re ⟪(u : H), shiftedOperator S m u⟫ := by
+  intro u hu
+  apply lt_of_lt_of_le
+  · exact mul_pos hcm (sq_pos_of_pos (norm_pos_iff.mpr hu))
+  · exact shiftedOperator_lower_bound c m hbound u
+
+/-- For `S ≤ A` and real `m` the shifted operators satisfy `S + m ≤ A + m`.-/
+theorem shiftedOperator_mono
+    {S A : H →ₗ.[𝕜] H} (m : ℝ) (hSA : S ≤ A) :
+    shiftedOperator S m ≤ shiftedOperator A m := by
+  constructor
+  · exact hSA.1
+  · intro x y hxy
+    change S x + (m : 𝕜) • (x : H) = A y + (m : 𝕜) • (y : H)
+    rw [hSA.2 hxy, hxy]
+
+/--For densely defined symmetric `S` and real `m` the shifted operator `S + m`
+is symmetric.-/
+theorem shiftedOperator_adjoint
+    [CompleteSpace H]
+    {S: H →ₗ.[𝕜] H} (m : ℝ)
+    (hS_dense : Dense (S.domain : Set H)) :
+    (shiftedOperator S m).adjoint =
+      shiftedOperator S.adjoint m := by
+    ext u hu hu'
+    change u ∈ (shiftedOperator S m).adjoint.domain ↔ u ∈ S.adjoint.domain
+    rw [LinearPMap.mem_adjoint_domain_iff_exists]
+    rw [LinearPMap.mem_adjoint_domain_iff_exists]
+    constructor
+    · rintro ⟨w, hw⟩
+      use (w - (m : 𝕜) • u)
+      intro v
+      specialize hw v
+      change ⟪w, v⟫ = ⟪u, S v + (m : 𝕜) • v ⟫ at hw
+      rw [inner_add_right, inner_smul_right] at hw
+      rw [inner_sub_left, inner_smul_left, RCLike.conj_ofReal]
+      simp [hw]
+    · rintro ⟨w, hw⟩
+      use (w + (m : 𝕜) • u)
+      intro v
+      specialize hw v
+      change ⟪w + (m : 𝕜) • u, v⟫ = ⟪u, S v + (m : 𝕜) • v⟫
+      rw [inner_add_right, inner_smul_right]
+      rw [inner_add_left, inner_smul_left, RCLike.conj_ofReal]
+      simp [hw]
+    · change (shiftedOperator S m).adjoint ⟨u, hu⟩ =
+          S.adjoint ⟨u, hu'⟩ + (m : 𝕜) • u
+      apply LinearPMap.adjoint_apply_eq (T := shiftedOperator S m) hS_dense
+      intro v
+      change ⟪S.adjoint ⟨u, hu'⟩ + (m : 𝕜) • u, v⟫ =
+        ⟪u, S v + (m : 𝕜) • v⟫
+      rw [inner_add_left, inner_smul_left, RCLike.conj_ofReal]
+      rw [inner_add_right, inner_smul_right]
+      rw [LinearPMap.adjoint_isFormalAdjoint hS_dense ⟨u, hu'⟩ v]
+
+/--For densely defined symmetric `S` and real `m` the shifted operator `S + m`
+is symmetric.-/
+theorem shiftedOperator_inverse
+    (S : H →ₗ.[𝕜] H) (m : ℝ):
+    shiftedOperator (shiftedOperator S m) (-m) = S := by
+  ext u huS' huS
+  · rfl
+  · change (S ⟨u, huS'⟩ + (m : 𝕜) • u) + ((-m : ℝ) : 𝕜) • u = S ⟨u, huS⟩
+    simp
+
+/--For self-adjoint `A` and real `m` the shifted operator `A + m` is self-adjoint.-/
+theorem shiftedOperator_isSelfAdjoint
+    [CompleteSpace H]
+    {A : H →ₗ.[𝕜] H} (m : ℝ)
+    (hA : IsSelfAdjoint A) :
+    IsSelfAdjoint (shiftedOperator A m) := by
+  rw [LinearPMap.isSelfAdjoint_def, shiftedOperator_adjoint m hA.dense_domain,
+      LinearPMap.isSelfAdjoint_def.mp hA]
+
+-- Construct the form space with inner product shifted by `m` with `c + m > 0`.
+abbrev SemiboundedFormSpace
+    (S : H →ₗ.[𝕜] H) (c m : ℝ) (hcm: 0 < c + m)
+    (hsym : S.IsFormalAdjoint S)
+    (hbound : ∀ u : S.domain,
+      c * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), S u⟫) :=
+  FormSpace (shiftedOperator S m)
+    (shiftedOperator_isFormalAdjoint m hsym)
+    (shiftedOperator_positive c m hcm hbound)
+
+/-- The completion of the form domian with respect to the inner product from the shifted operator form
+is injectively embedded in `E`-/
+theorem exists_semiboundedFormCompletion_inclusion
+    [CompleteSpace H]
+    (S : H →ₗ.[𝕜] H) (c m : ℝ) (hcm: c + m > 0)
+    (hsym : S.IsFormalAdjoint S)
+    (hbound : ∀ u : S.domain,
+      c * ‖(u : H)‖ ^ 2 ≤ RCLike.re ⟪(u : H), S u⟫) :
+    ∃ J : UniformSpace.Completion
+        (SemiboundedFormSpace S c m hcm hsym hbound) →L[𝕜] H,
+      Function.Injective J ∧
+      (∀ u : SemiboundedFormSpace S c m hcm hsym hbound,
+        J (u : UniformSpace.Completion
+          (SemiboundedFormSpace S c m hcm hsym hbound)) = (u : H)) ∧
+      (∀ w : UniformSpace.Completion
+          (SemiboundedFormSpace S c m hcm hsym hbound),
+        (c + m) * ‖J w‖ ^ 2 ≤ ‖w‖ ^ 2) :=
+  exists_positiveFormCompletion_inclusion
+    (shiftedOperator S m)
+    (shiftedOperator_isFormalAdjoint m hsym)
+    (shiftedOperator_positive c m hcm hbound)
+    (c + m) hcm
+    (shiftedOperator_lower_bound c m hbound)
+
+
+section SemiboundedFriedrichsTheroems
+
+variable
+  [CompleteSpace H]
+  (c : ℝ)
+  (hcm : 0 < c + (1 - c))
+  (hS_dense : Dense (S.domain : Set H))
+  (hbound : ∀ u : S.domain,
+    c * ‖(u : H)‖ ^ 2 ≤ RCLike.re (inner 𝕜 (u : H) (S u)))
+  (J : UniformSpace.Completion
+    (SemiboundedFormSpace S c (1 - c) hcm hsym hbound) →L[𝕜] H)
+  (hJ_injective : Function.Injective J)
+  (hJ_agrees : ∀ u : SemiboundedFormSpace S c (1 - c) hcm hsym hbound,
+    J (u : UniformSpace.Completion
+      (SemiboundedFormSpace S c (1 - c) hcm hsym hbound)) = (u : H))
+  (hJ_dense : DenseRange J)
+  (hJ_bound : ∀ w : UniformSpace.Completion
+      (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+    ‖J w‖ ^ 2 ≤ ‖w‖ ^ 2)
+
+-- Construct an extension using the shift `m = 1 -c`, including its lower bound.
+include hS_dense hJ_injective hJ_agrees hJ_dense hJ_bound in
+theorem semibounded_friedrichs_exists :
+    ∃ A : H →ₗ.[𝕜] H,
+      S ≤ A ∧
+      IsSelfAdjoint A ∧
+      (∀ x : A.domain,
+        ∃ w : UniformSpace.Completion
+            (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+          J w = (x : H)) ∧
+      (∀ x : A.domain,
+        c * ‖(x : H)‖ ^ 2 ≤
+          RCLike.re ⟪(x : H), A x⟫) := by
+  let m := 1 - c
+  rcases positive_friedrichs_exists
+      (shiftedOperator S m)
+      (shiftedOperator_isFormalAdjoint m hsym)
+      (shiftedOperator_positive c m hcm hbound)
+      (shiftedOperator_dense_domain m hS_dense)
+      1 J hJ_injective hJ_agrees hJ_dense
+      (by simpa only [one_mul] using hJ_bound)
+    with ⟨A, hSmA, hA, hA_domain, hA_bound⟩
+  use shiftedOperator A (-m)
+  constructor
+  · rw [← shiftedOperator_inverse S m]
+    exact shiftedOperator_mono (-m) hSmA
+  · constructor
+    · exact shiftedOperator_isSelfAdjoint (-m) hA
+    · constructor
+      · exact hA_domain
+      · rw [← show 1+(-m)=c by linarith]
+        exact shiftedOperator_lower_bound 1 (-m) hA_bound
+
+
+end SemiboundedFriedrichsTheroems
 end Friedrichs

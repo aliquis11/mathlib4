@@ -18,9 +18,16 @@ The uniqueness characterisation of the Friedrichs extension in the strictly posi
 - Establishing that any self-adjoint extension with domain contained in the completed form domain satisfies the inner product identity that defines the Friedrichs extension.
 - Proving that any two self-adjoint extensions with domains contained in the completed form domain must coincide.
 
+The existence argument for the semibounded case has been formalised through:
+
+- Establishing elementary results for operators shifted by a real number.
+- Shifting the original operator to obtain a strictly positive operator.
+- Applying the result in the positive case.
+- Shifting the resulting extension back, preserving self-adjointness and recovering the original lower bound.
+
 ## Remaining work
 
-- Handle general semibounded operators by shifting.
+- Characterise uniqueness in the semibounded case.
 - Define a named Friedrichs extension with its characterising properties.
 
 ## Integration into mathlib
