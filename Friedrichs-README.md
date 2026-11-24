@@ -21,13 +21,17 @@ The uniqueness characterisation of the Friedrichs extension in the strictly posi
 The existence argument for the semibounded case has been formalised through:
 
 - Establishing elementary results for operators shifted by a real number.
-- Shifting the original operator to obtain a strictly positive operator.
+- Shifting the original operator by 1-c to obtain a strictly positive operator.
 - Applying the result in the positive case.
 - Shifting the resulting extension back, preserving self-adjointness and recovering the original lower bound.
 
+The uniqueness characterisation of the Friedrichs extension in the semibounded case has been formalised through:
+- Establishing that any self-adjoint extension with domain contained in the completed form domain (using a shift of 1-c) satisfies the inner product identity that defines the Friedrichs extension.
+- Proving that any two self-adjoint extensions with domains contained in the completed form (using a shift of 1-c) domain must coincide.
+
 ## Remaining work
 
-- Characterise uniqueness in the semibounded case.
+- In the semibounded case, establish the independence of the construction on the shift provided the resulting operator is strictly positive.
 - Define a named Friedrichs extension with its characterising properties.
 
 ## Integration into mathlib

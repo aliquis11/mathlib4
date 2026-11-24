@@ -126,8 +126,7 @@ instance :
 def InnerProductFormSpace :
     InnerProductSpace.Core 𝕜 (FormSpace S hsym hpos) := by
   refine
-    { inner := fun (u v : S.domain) =>
-        ⟪(u : H), S v⟫
+    { inner := fun (u v : S.domain) => ⟪(u : H), S v⟫
       conj_inner_symm := by
         intro u v
         simp [← hsym u v]
@@ -839,6 +838,81 @@ theorem semibounded_friedrichs_exists :
       · rw [← show 1+(-m)=c by linarith]
         exact shiftedOperator_lower_bound 1 (-m) hA_bound
 
+-- Characterise any such extension by the inner product identity.
+include hJ_agrees in
+theorem semibounded_friedrichs_pairing_iff
+    {A : H →ₗ.[𝕜] H}
+    (hSA : S ≤ A)
+    (hA : IsSelfAdjoint A)
+    (hA_domain : ∀ x : A.domain,
+      ∃ w : UniformSpace.Completion
+          (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+        J w = (x : H))
+    (x f : H) :
+    (∃ hx : x ∈ A.domain, A ⟨x, hx⟩ = f) ↔
+      ∃ w : UniformSpace.Completion
+          (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+        J w = x ∧
+        ∀ v : UniformSpace.Completion
+            (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+          ⟪w, v⟫ =
+            ⟪f + ((1 - c : ℝ) : 𝕜) • x, J v⟫ := by
+  let m := 1-c
+  let Am := shiftedOperator A m
+  have hshifted := positive_friedrichs_pairing_iff
+      (shiftedOperator S m)
+      (shiftedOperator_isFormalAdjoint m hsym)
+      (shiftedOperator_positive c m hcm hbound)
+      J hJ_agrees
+      (shiftedOperator_mono m hSA)
+      (shiftedOperator_isSelfAdjoint m hA)
+      hA_domain
+      x (f + (m : 𝕜) • x)
+  constructor
+  · rintro ⟨hx, hf⟩
+    have hfm: Am ⟨x, hx⟩ = (f + (m : 𝕜) • x) := by
+      change A ⟨x, hx⟩ + (m : 𝕜) • x =(f + (m : 𝕜) • x)
+      rw [hf]
+    exact hshifted.mp ⟨hx, hfm⟩
+  · rintro hw
+    rcases hshifted.mpr hw with ⟨hxm, hfm⟩
+    have hf : A ⟨x, hxm⟩  = f := by
+      change A ⟨x, hxm⟩ + (m : 𝕜) • x =(f + (m : 𝕜) • x) at hfm
+      simpa using hfm
+    exact ⟨hxm, hf⟩
+
+-- Inlcusion in completion of the form domain charaterises the extension uniquely.
+include hJ_agrees in
+theorem semibounded_friedrichs_unique
+    {A B : H →ₗ.[𝕜] H}
+    (hSA : S ≤ A)
+    (hSB : S ≤ B)
+    (hA : IsSelfAdjoint A)
+    (hB : IsSelfAdjoint B)
+    (hA_domain : ∀ x : A.domain,
+      ∃ w : UniformSpace.Completion
+          (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+        J w = (x : H))
+    (hB_domain : ∀ x : B.domain,
+      ∃ w : UniformSpace.Completion
+          (SemiboundedFormSpace S c (1 - c) hcm hsym hbound),
+        J w = (x : H)) :
+    A = B := by
+  let m := 1 - c
+  have hshifted := positive_friedrichs_unique
+      (shiftedOperator S m)
+      (shiftedOperator_isFormalAdjoint m hsym)
+      (shiftedOperator_positive c m hcm hbound)
+      J hJ_agrees
+      (shiftedOperator_mono m hSA)
+      (shiftedOperator_mono m hSB)
+      (shiftedOperator_isSelfAdjoint m hA)
+      (shiftedOperator_isSelfAdjoint m hB)
+      hA_domain
+      hB_domain
+  rw [← shiftedOperator_inverse A m,
+      ← shiftedOperator_inverse B m]
+  rw [hshifted]
 
 end SemiboundedFriedrichsTheroems
 end Friedrichs
