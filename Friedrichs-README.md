@@ -28,7 +28,7 @@ The existence argument for the semibounded case has been formalised through:
 The uniqueness characterisation of the Friedrichs extension in the semibounded case has been formalised through:
 - Establishing that any self-adjoint extension with domain contained in the completed form domain (using a shift of 1-c) satisfies the inner product identity that defines the Friedrichs extension.
 - Proving that any two self-adjoint extensions with domains contained in the completed form (using a shift of 1-c) domain must coincide.
-- Proving that any two self-adjoint extensions of with domains contained in completed form domains, possibly defined using different shifts, must coincide.
+- Proving that any two self-adjoint extensions with domains contained in completed form domains, possibly defined using different shifts, must coincide.
 
 ## Remaining work
 
