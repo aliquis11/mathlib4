@@ -21,29 +21,34 @@ The uniqueness characterisation of the Friedrichs extension in the strictly posi
 The existence argument for the semibounded case has been formalised through:
 
 - Establishing elementary results for operators shifted by a real number.
-- Shifting the original operator by 1-c to obtain a strictly positive operator.
+- Shifting the original operator by `1 - c`, where `c` is a lwoer bond, to obtain a strictly positive operator.
 - Applying the result in the positive case.
 - Shifting the resulting extension back, preserving self-adjointness and recovering the original lower bound.
 
 The uniqueness characterisation of the Friedrichs extension in the semibounded case has been formalised through:
-- Establishing that any self-adjoint extension with domain contained in the completed form domain (using a shift of 1-c) satisfies the inner product identity that defines the Friedrichs extension.
-- Proving that any two self-adjoint extensions with domains contained in the completed form (using a shift of 1-c) domain must coincide.
+
+- Establishing that any self-adjoint extension with domain contained in the completed form domain (using a shift of `1 - c`) satisfies the inner product identity that defines the Friedrichs extension.
+- Proving that any two self-adjoint extensions with domains contained in the completed form (using a shift of `1 - c`) domain must coincide.
 - Proving that any two self-adjoint extensions with domains contained in completed form domains, possibly defined using different shifts, must coincide.
 
-## Remaining work
+The Friedrichs extension is now available as a named definition, with theorems establishing:
 
-- Define a named Friedrichs extension with its characterising properties.
+- Extension of the original operator.
+- Self-adjointness.
+- Preservation of the given lower bound.
+- Domain containment in the image of the completed form domain.
+- Uniqueness among self-adjoint extensions satisfying this domain condition, independently of the admissible shift.
 
 ## Integration into mathlib
 
 Supporting results are being prepared as separate contributions:
 
-- Characterise membership in the adjoint domain through an inner-product
-  representation in `Mathlib/Analysis/InnerProductSpace/LinearPMap.lean`: ([PR #45828](https://github.com/leanprover-community/mathlib4/pull/45828)).
+- Characterise membership in the adjoint domain through an inner-product representation in `Mathlib/Analysis/InnerProductSpace/LinearPMap.lean`: ([PR #45828](https://github.com/leanprover-community/mathlib4/pull/45828)).
 - Define the inlcusion map between two nested subspaces as a bundled continuous map in `Mathlib/Topology/Algebra/Module/ContinuousLinearMap/Restrict.lean`: ([PR #45828](https://github.com/leanprover-community/mathlib4/pull/45828)).
 - Introduce `LinearPMap.IsSymmetric` with basic lemmas.
 - Include the result that a densely defined, symmetric, surjective operator is self-adjoint in `LinearPMap.IsSymmetric`.
-- Possibly extract the representation theorem for densely defined, closed,
-  semibounded Hermitian form in a separate file.
+- Develop lemmas for real scalar shifts, including preservation of symmetry and self-adjointness, the adjoint-shift identity, and lower bounds.
+- Possibly extract the representation theorem for densely defined, closed, semibounded Hermitian form in a separate file.
+- Integrate the Friedrichs extension itself, including its construction, characterising properties and uniqueness, once the supporting infrastructure is in place.
 
 
